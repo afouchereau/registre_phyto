@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registre Phytosanitaire</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="assets/manifest.json">
+</head>
+<body>
+    <header>
+        <h1>🌱 Registre Phytosanitaire</h1>
+        <p>Conforme à l'arrêté du 24/12/2025</p>
+    </header>
+
+    <main>
+        <!-- Formulaire de saisie -->
+        <form id="treatmentForm">
+            <fieldset>
+                <legend>📍 Identification de l'établissement</legend>
+                <label for="siretHolder">SIRET Détenteur (14 chiffres) *</label>
+                <input type="text" id="siretHolder" pattern="\d{14}" required>
+
+                <label for="siretBeneficiary">SIRET Bénéficiaire (si prestation)</label>
+                <input type="text" id="siretBeneficiary" pattern="\d{14}">
+            </fieldset>
+
+            <fieldset>
+                <legend>🧪 Produit utilisé</legend>
+                <label for="productName">Nom commercial *</label>
+                <input type="text" id="productName" required>
+
+                <label for="ammNumber">Numéro AMM (7 chiffres) *</label>
+                <input type="text" id="ammNumber" pattern="\d{7}" required>
+
+                <label for="activeSubstances">Substance(s) active(s) (semences traitées)</label>
+                <input type="text" id="activeSubstances">
+
+                <div id="ammWarning" style="color: #ff5722; display: none;">
+                    ⚠️ Ce numéro AMM n'est pas dans la liste locale. Vérifiez-le ou mettez à jour la liste.
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>📅 Date et localisation</legend>
+                <label for="treatmentDate">Date (JJ/MM/AAAA) *</label>
+                <input type="date" id="treatmentDate" required>
+
+                <label>Localisation *</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="locationType" value="rpg" checked> Parcelle RPG</label>
+                    <label><input type="radio" name="locationType" value="gps"> GPS</label>
+                </div>
+
+                <div id="rpgFields">
+                    <label for="ilot">Numéro d'îlot (4 chiffres) *</label>
+                    <input type="text" id="ilot" pattern="\d{4}" required>
+
+                    <label for="parcelle">Numéro de parcelle (3 chiffres) *</label>
+                    <input type="text" id="parcelle" pattern="\d{3}" required>
+
+                    <label for="insee">Code commune INSEE (5 chiffres) *</label>
+                    <input type="text" id="insee" pattern="\d{5}" required>
+                </div>
+
+                <div id="gpsFields" style="display: none;">
+                    <label for="gpsCoords">Coordonnées GPS (WGS84) *</label>
+                    <input type="text" id="gpsCoords" placeholder="ex: 48.8566, 2.3522" required>
+                    <button type="button" id="getGps">📍 Obtenir ma position</button>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>📏 Détails du traitement</legend>
+                <label for="dose">Dose *</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" step="0.01" id="dose" required style="flex: 1;">
+                    <select id="doseUnit" required>
+                        <option value="kg/ha">kg/ha</option>
+                        <option value="L/ha">L/ha</option>
+                        <option value="g/ha">g/ha</option>
+                    </select>
+                </div>
+
+                <label for="surface">Surface traitée *</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" step="0.01" id="surface" required style="flex: 1;">
+                    <select id="surfaceUnit" required>
+                        <option value="ha">ha</option>
+                        <option value="m²">m²</option>
+                    </select>
+                </div>
+
+                <label for="crop">Culture (code OEPP ou texte) *</label>
+                <input type="text" id="crop" required>
+
+                <label for="phenologicalStage">Stade phénologique (BBCH)</label>
+                <input type="text" id="phenologicalStage" pattern="\d{2}" placeholder="ex: 15">
+
+                <label for="isOrganic">Production biologique ?</label>
+                <select id="isOrganic">
+                    <option value="non">Non</option>
+                    <option value="oui">Oui</option>
+                </select>
+
+                <label for="lotNumber">Numéro de lot (semences/plants)</label>
+                <input type="text" id="lotNumber">
+
+                <label for="sowingDensity">Densité de semis (kg/ha)</label>
+                <input type="number" step="0.01" id="sowingDensity">
+            </fieldset>
+
+            <button type="submit">✅ Enregistrer le traitement</button>
+        </form>
+
+        <!-- Section de gestion des AMM -->
+        <section id="ammSettings" style="margin-top: 30px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+            <h3>⚙️ Gestion de la liste des AMM</h3>
+            <p>Dernière mise à jour : <span id="lastUpdateDate">Jamais</span></p>
+            <div style="display: flex; gap: 10px; margin: 10px 0;">
+                <button id="checkAmmsUpdate">Vérifier les mises à jour</button>
+                <input type="file" id="ammFileInput" accept=".json" style="display: none;">
+                <button id="importAmmsFile">Importer un fichier AMM</button>
+            </div>
+            <p id="updateStatus" style="font-weight: bold;"></p>
+        </section>
+
+        <!-- Liste des traitements -->
+        <section id="treatmentList" style="margin-top: 30px;">
+            <h2>📋 Historique des traitements</h2>
+            <div style="display: flex; gap: 10px; margin: 10px 0;">
+                <button id="exportCsv">📥 Exporter en CSV</button>
+                <button id="exportJson">📥 Exporter en JSON</button>
+            </div>
+            <div id="listContainer"></div>
+        </section>
+    </main>
+
+    <footer style="text-align: center; margin-top: 30px; color: #666;">
+        <p>⚠️ Les données sont stockées localement et doivent être conservées 5 ans.</p>
+    </footer>
+
+    <script src="db.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
