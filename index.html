@@ -25,15 +25,6 @@
         <div id="declaration" class="tab-content active">
             <form id="treatmentForm">
                 <fieldset>
-                    <legend>📍 Identification de l'établissement</legend>
-                    <label for="siretHolder">SIRET Détenteur (14 chiffres) *</label>
-                    <input type="text" id="siretHolder" pattern="\d{14}" required>
-
-                    <label for="siretBeneficiary">SIRET Bénéficiaire (si prestation)</label>
-                    <input type="text" id="siretBeneficiary" pattern="\d{14}">
-                </fieldset>
-
-                <fieldset>
                     <legend>🧪 Produit utilisé</legend>
                     <label for="productName">Nom commercial *</label>
                     <input type="text" id="productName" required>
@@ -124,6 +115,22 @@
 
         <!-- Onglet Paramètres -->
         <div id="settings" class="tab-content">
+            <div class="settings-section">
+                <h2>🏢 Identification de l'établissement</h2>
+                <p>Ces informations seront utilisées par défaut pour tous les traitements.</p>
+
+                <div style="display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap;">
+                    <label for="siretHolder" style="flex: 1;">SIRET Détenteur (14 chiffres) *</label>
+                    <label for="siretBeneficiary" style="flex: 1;">SIRET Bénéficiaire (si prestation)</label>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" id="siretHolder" pattern="\d{14}" style="flex: 1;" placeholder="Ex: 12345678901234">
+                    <input type="text" id="siretBeneficiary" pattern="\d{14}" style="flex: 1;" placeholder="Ex: 12345678901234">
+                </div>
+                <button id="saveEstablishment" style="margin-top: 10px;">💾 Enregistrer</button>
+                <p id="establishmentStatus" style="margin-top: 10px; font-weight: bold;"></p>
+            </div>
+
             <div class="settings-section">
                 <h2>⚙️ Gestion de la liste des AMM</h2>
                 <p>Dernière mise à jour : <span id="lastUpdateDate">Jamais</span></p>
