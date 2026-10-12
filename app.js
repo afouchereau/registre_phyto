@@ -1,7 +1,7 @@
 // Variables globales
 let treatments = [];
 let ammList = {};
-const AMM_LIST_URL = "https://exemple.fr/amm_list.json"; // À remplacer par une URL officielle si disponible
+const AMM_LIST_URL = "https://exemple.fr/amm_list.json"; // À remplacer par une URL officielle
 const LOCAL_AMM_FILE = "assets/amm_list.json";
 
 // Initialisation
@@ -12,12 +12,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadTreatments();
     checkReminder();
     updateLastUpdateDisplay();
+    updateLastExportDisplay();
+    setupTabs();
 });
+
+// Configurer les onglets
+function setupTabs() {
+    const tabButtons = document.querySelectorAll(".tab-button");
+    const tabContents = document.querySelectorAll(".tab-content");
+
+    tabButtons.forEach(button => {
+        button.addEventListener("click", () => {
+            // Désactiver tous les boutons et contenus
+            tabButtons.forEach(btn => btn.classList.remove("active"));
+            tabContents.forEach(content => content.classList.remove("active"));
+
+            // Activer le bouton et le contenu cliqué
+            button.classList.add("active");
+            const tabId = button.getAttribute("data-tab");
+            document.getElementById(tabId).classList.add("active");
+        });
+    });
+}
 
 // Charger la liste des AMM
 async function loadAMMList() {
     try {
-        // 1. Vérifier localStorage
         const storedList = localStorage.getItem('ammList');
         const storedDate = localStorage.getItem('ammListLastUpdate');
 
@@ -25,7 +45,6 @@ async function loadAMMList() {
             ammList = JSON.parse(storedList);
             console.log("Liste des AMM chargée depuis localStorage (date: " + storedDate + ").");
         } else {
-            // 2. Charger le fichier local par défaut
             try {
                 const localResponse = await fetch(LOCAL_AMM_FILE);
                 ammList = await localResponse.json();
@@ -36,7 +55,6 @@ async function loadAMMList() {
             }
         }
 
-        // 3. Vérifier les mises à jour si en ligne
         if (navigator.onLine) {
             await checkForAMMUpdate();
         }
@@ -48,16 +66,22 @@ async function loadAMMList() {
 
 // Vérifier les mises à jour des AMM
 async function checkForAMMUpdate() {
-    if (!navigator.onLine) return;
+    if (!navigator.onLine) {
+        document.getElementById("updateStatus").textContent = "⚠️ Vous êtes hors ligne. Impossible de vérifier les mises à jour.";
+        document.getElementById("updateStatus").style.color = "#ff5722";
+        return;
+    }
 
     try {
+        document.getElementById("updateStatus").textContent = "🔍 Vérification des mises à jour en cours...";
+        document.getElementById("updateStatus").style.color = "#1976D2";
+
         const response = await fetch(AMM_LIST_URL);
         if (!response.ok) {
             throw new Error("Réponse du serveur non valide (code: " + response.status + ")");
         }
         const remoteList = await response.json();
 
-        // Comparer avec la liste actuelle
         const currentListStr = JSON.stringify(ammList);
         const remoteListStr = JSON.stringify(remoteList);
 
@@ -75,17 +99,28 @@ async function checkForAMMUpdate() {
         }
     } catch (error) {
         console.warn("Impossible de vérifier les mises à jour des AMM:", error);
-        document.getElementById("updateStatus").textContent = "⚠️ Impossible de vérifier les mises à jour (hors ligne ou erreur).";
-        document.getElementById("updateStatus").style.color = "#ff5722";
+        document.getElementById("updateStatus").textContent = "❌ Impossible de vérifier les mises à jour (erreur serveur).";
+        document.getElementById("updateStatus").style.color = "red";
     }
 }
 
-// Mettre à jour l'affichage de la date de dernière mise à jour
+// Mettre à jour l'affichage de la date de dernière mise à jour des AMM
 function updateLastUpdateDisplay() {
     const lastUpdate = localStorage.getItem('ammListLastUpdate');
     const displayElement = document.getElementById("lastUpdateDate");
     if (lastUpdate) {
         displayElement.textContent = new Date(lastUpdate).toLocaleString('fr-FR');
+    } else {
+        displayElement.textContent = "Jamais";
+    }
+}
+
+// Mettre à jour l'affichage de la date du dernier export
+function updateLastExportDisplay() {
+    const lastExport = localStorage.getItem('lastExportDate');
+    const displayElement = document.getElementById("lastExportDate");
+    if (lastExport) {
+        displayElement.textContent = new Date(lastExport).toLocaleString('fr-FR');
     } else {
         displayElement.textContent = "Jamais";
     }
@@ -101,15 +136,26 @@ async function loadTreatments() {
     try {
         treatments = await getAllTreatments();
         renderTreatmentList();
+        updateTreatmentCount();
     } catch (error) {
         console.error("Erreur de chargement des traitements:", error);
         treatments = [];
     }
 }
 
-// Afficher la liste des traitements
+// Mettre à jour le compteur de traitements
+function updateTreatmentCount() {
+    const countElement = document.getElementById("treatmentCount");
+    if (countElement) {
+        countElement.textContent = treatments.length;
+    }
+}
+
+// Afficher la liste des traitements (dans l'onglet Exports)
 function renderTreatmentList() {
     const listContainer = document.getElementById("listContainer");
+    if (!listContainer) return;
+
     listContainer.innerHTML = "";
 
     if (treatments.length === 0) {
@@ -141,7 +187,7 @@ function renderTreatmentList() {
             <td>${treatment.surface} ${treatment.surfaceUnit}</td>
             <td>${treatment.dose} ${treatment.doseUnit}</td>
             <td>
-                <button onclick="editTreatment(${treatment.id})" style="background-color: #1976D2;">✏️</button>
+                <button onclick="editTreatment(${treatment.id})" style="background-color: #1976D2; margin-right: 5px;">✏️</button>
                 <button onclick="confirmDelete(${treatment.id})" style="background-color: #D32F2F;">🗑️</button>
             </td>
         `;
@@ -257,19 +303,19 @@ function setupEventListeners() {
     // Export CSV
     document.getElementById("exportCsv").addEventListener("click", () => {
         exportToCsv();
+        localStorage.setItem("lastExportDate", new Date().toISOString());
+        updateLastExportDisplay();
     });
 
     // Export JSON
     document.getElementById("exportJson").addEventListener("click", () => {
         exportToJson();
+        localStorage.setItem("lastExportDate", new Date().toISOString());
+        updateLastExportDisplay();
     });
 
     // Vérifier les mises à jour des AMM
-    document.getElementById("checkAmmsUpdate").addEventListener("click", async () => {
-        document.getElementById("updateStatus").textContent = "🔍 Vérification des mises à jour en cours...";
-        document.getElementById("updateStatus").style.color = "#1976D2";
-        await checkForAMMUpdate();
-    });
+    document.getElementById("checkAmmsUpdate").addEventListener("click", checkForAMMUpdate);
 
     // Importer un fichier AMM
     document.getElementById("importAmmsFile").addEventListener("click", () => {
@@ -300,7 +346,19 @@ function setupEventListeners() {
             document.getElementById("updateStatus").style.color = "red";
         };
         reader.readAsText(file);
-        e.target.value = ""; // Réinitialiser l'input file
+        e.target.value = "";
+    });
+
+    // Tester le rappel
+    document.getElementById("testReminder").addEventListener("click", () => {
+        showReminderNotification();
+    });
+
+    // Supprimer tous les traitements
+    document.getElementById("clearAll").addEventListener("click", () => {
+        if (confirm("⚠️ Êtes-vous sûr de vouloir supprimer TOUS les traitements ? Cette action est irréversible.")) {
+            clearAllTreatments();
+        }
     });
 }
 
@@ -311,6 +369,12 @@ function resetForm() {
     document.getElementById("gpsFields").style.display = "none";
     document.getElementById("ammWarning").style.display = "none";
     document.getElementById("updateStatus").textContent = "";
+
+    // Réinitialiser le bouton de soumission
+    const submitButton = document.getElementById("submitTreatment");
+    submitButton.textContent = "✅ Enregistrer le traitement";
+    submitButton.onclick = null;
+    document.getElementById("treatmentForm").onsubmit = null;
 }
 
 // Exporter en CSV
@@ -403,7 +467,13 @@ async function editTreatment(id) {
     const treatment = treatments.find(t => t.id === id);
     if (!treatment) return;
 
-    // Remplir le formulaire avec les données du traitement
+    // Basculer vers l'onglet Déclaration
+    document.querySelectorAll(".tab-button").forEach(btn => btn.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(content => content.classList.remove("active"));
+    document.querySelector(".tab-button[data-tab='declaration']").classList.add("active");
+    document.getElementById("declaration").classList.add("active");
+
+    // Remplir le formulaire
     document.getElementById("siretHolder").value = treatment.siretHolder || "";
     document.getElementById("siretBeneficiary").value = treatment.siretBeneficiary || "";
     document.getElementById("productName").value = treatment.productName || "";
@@ -438,9 +508,9 @@ async function editTreatment(id) {
     document.getElementById("sowingDensity").value = treatment.sowingDensity || "";
 
     // Changer le bouton de soumission pour mettre à jour
-    const submitButton = document.querySelector("#treatmentForm button[type='submit']");
+    const submitButton = document.getElementById("submitTreatment");
     submitButton.textContent = "🔄 Mettre à jour le traitement";
-    submitButton.onclick = async (e) => {
+    document.getElementById("treatmentForm").onsubmit = async (e) => {
         e.preventDefault();
         const updatedTreatment = {
             siretHolder: document.getElementById("siretHolder").value,
@@ -471,9 +541,6 @@ async function editTreatment(id) {
             await updateTreatment(id, updatedTreatment);
             loadTreatments();
             resetForm();
-            submitButton.textContent = "✅ Enregistrer le traitement";
-            submitButton.onclick = null;
-            document.getElementById("treatmentForm").onsubmit = null;
             document.getElementById("updateStatus").textContent = "✅ Traitement mis à jour !";
             document.getElementById("updateStatus").style.color = "#2E7D32";
         } catch (error) {
@@ -481,6 +548,32 @@ async function editTreatment(id) {
             alert("Erreur lors de la mise à jour du traitement.");
         }
     };
+}
+
+// Supprimer tous les traitements
+async function clearAllTreatments() {
+    try {
+        await openDB();
+        const transaction = db.transaction(STORE_NAME, "readwrite");
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.clear();
+
+        request.onsuccess = () => {
+            treatments = [];
+            renderTreatmentList();
+            updateTreatmentCount();
+            document.getElementById("updateStatus").textContent = "✅ Tous les traitements ont été supprimés.";
+            document.getElementById("updateStatus").style.color = "#2E7D32";
+        };
+
+        request.onerror = () => {
+            console.error("Erreur lors de la suppression de tous les traitements:", request.error);
+            alert("Erreur lors de la suppression des traitements.");
+        };
+    } catch (error) {
+        console.error("Erreur lors de l'ouverture de la base de données:", error);
+        alert("Erreur lors de la suppression des traitements.");
+    }
 }
 
 // Rappel tous les 30 jours
