@@ -1,0 +1,14 @@
+{
+    "2025001": {
+        "nom": "Exemple Produit 1",
+        "substances_actives": ["Substance A"],
+        "date_expiration": "31/12/2027",
+        "cultures_autorisees": ["Blé", "Maïs"]
+    },
+    "2025002": {
+        "nom": "Exemple Produit 2",
+        "substances_actives": ["Substance B"],
+        "date_expiration": "15/06/2026",
+        "cultures_autorisees": ["Vigne"]
+    }
+}
